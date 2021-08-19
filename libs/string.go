@@ -15,4 +15,15 @@ const (
 	Success                       = "Success"
 	NotFound                      = "Not Found"
 	DeleteSuccess                 = "Delete Success"
+
+	//Temporal
+	RegisterWorkflow = "RegisterWorkflow"
+	//Register Member
+	ActivityRegisterMember = "Register"
+	RegisterMemberQueue    = "REG-MEMBER-QUEUE"
+	//Payment
+	ActivityPayment = "Payment"
+	PaymentQueue    = "PAYMENT-QUEUE"
+
+	MaxConcurrentSquareActivitySize = 10
 )

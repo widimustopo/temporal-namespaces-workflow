@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"time"
+
 	"github.com/gofrs/uuid"
 )
 
@@ -25,4 +27,17 @@ type Payment struct {
 	Price         float64   `json:"price" validate:"required"`
 	FullPrice     float64   `json:"full_price" validate:"required"`
 	StatusPayment string    `json:"status_payment"`
+}
+
+type TemporalRequest struct {
+	Times        time.Time
+	TypesTimes   string
+	Task         string
+	TaskType     string
+	Data         *Member
+	WorkflowName string
+	Retry        int32
+	Attempt      int32
+	Interval     time.Duration
+	MaxInterval  time.Duration
 }
