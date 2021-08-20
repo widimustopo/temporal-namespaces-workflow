@@ -7,10 +7,10 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	database "github.com/widimustopo/temporal-namespaces-module/databases"
-	"github.com/widimustopo/temporal-namespaces-module/libs"
-	"github.com/widimustopo/temporal-namespaces-module/temporal/activities"
-	"github.com/widimustopo/temporal-namespaces-module/temporal/workflows"
+	"github.com/widimustopo/temporal-namespaces-workflow/activities"
+	database "github.com/widimustopo/temporal-namespaces-workflow/databases"
+	"github.com/widimustopo/temporal-namespaces-workflow/libs"
+	"github.com/widimustopo/temporal-namespaces-workflow/workflows"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"gorm.io/gorm"
@@ -35,8 +35,13 @@ func main() {
 	db := database.OpenDB(loadConfig)
 
 	registerClient := initRegisterTemporalClient(loadConfig)
+	paymentClient := initPaymentTemporalClient(loadConfig)
 
 	workerRegister := initRegisterWorker(registerClient, db)
+	workerOrder := initOrderWorker(paymentClient, db)
+	workerExpired := initExpiredWorker(paymentClient, db)
+	workerPayment := initPaymentWorker(paymentClient, db)
+	workerPaymentFail := initPaymentFailWorker(paymentClient, db)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
@@ -44,6 +49,10 @@ func main() {
 	<-signals
 
 	workerRegister.Stop()
+	workerOrder.Stop()
+	workerPayment.Stop()
+	workerPaymentFail.Stop()
+	workerExpired.Stop()
 
 }
 func initRegisterTemporalClient(cfg *libs.Config) client.Client {
@@ -59,9 +68,22 @@ func initRegisterTemporalClient(cfg *libs.Config) client.Client {
 	return c
 }
 
+func initPaymentTemporalClient(cfg *libs.Config) client.Client {
+	c, err := client.NewClient(client.Options{
+		HostPort:  client.DefaultHostPort,
+		Namespace: cfg.PaymentNamespaces,
+	})
+
+	if err != nil {
+		logrus.Fatalln("Unable to create client", err)
+	}
+
+	return c
+}
+
 func initRegisterWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
 	wo := worker.Options{
-		//	MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
 	}
 
 	worker := worker.New(temporalClient, libs.RegisterWorkflow, wo)
@@ -70,6 +92,90 @@ func initRegisterWorker(temporalClient client.Client, db *gorm.DB) worker.Worker
 
 	newHandler := activities.HandlerActivities(db, temporalClient)
 	worker.RegisterActivity(newHandler.Register)
+
+	err := worker.Start()
+	if err != nil {
+		logrus.Error(err.Error())
+		return nil
+	}
+
+	return worker
+}
+
+func initOrderWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
+	wo := worker.Options{
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+	}
+
+	worker := worker.New(temporalClient, libs.OrderWorkflow, wo)
+
+	worker.RegisterWorkflow(workflows.OrderWorkflow)
+
+	newHandler := activities.HandlerActivities(db, temporalClient)
+	worker.RegisterActivity(newHandler.Order)
+
+	err := worker.Start()
+	if err != nil {
+		logrus.Error(err.Error())
+		return nil
+	}
+
+	return worker
+}
+
+func initExpiredWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
+	wo := worker.Options{
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+	}
+
+	worker := worker.New(temporalClient, libs.ExpiredWorkflow, wo)
+
+	worker.RegisterWorkflow(workflows.ExpiredWorkflow)
+
+	newHandler := activities.HandlerActivities(db, temporalClient)
+	worker.RegisterActivity(newHandler.Expired)
+
+	err := worker.Start()
+	if err != nil {
+		logrus.Error(err.Error())
+		return nil
+	}
+
+	return worker
+}
+
+func initPaymentWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
+	wo := worker.Options{
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+	}
+
+	worker := worker.New(temporalClient, libs.PaymentWorkflow, wo)
+
+	worker.RegisterWorkflow(workflows.PaymentWorkflow)
+
+	newHandler := activities.HandlerActivities(db, temporalClient)
+	worker.RegisterActivity(newHandler.Payment)
+
+	err := worker.Start()
+	if err != nil {
+		logrus.Error(err.Error())
+		return nil
+	}
+
+	return worker
+}
+
+func initPaymentFailWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
+	wo := worker.Options{
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+	}
+
+	worker := worker.New(temporalClient, libs.PaymentFailWorkflow, wo)
+
+	worker.RegisterWorkflow(workflows.PaymentFailWorkflow)
+
+	newHandler := activities.HandlerActivities(db, temporalClient)
+	worker.RegisterActivity(newHandler.PaymentFail)
 
 	err := worker.Start()
 	if err != nil {

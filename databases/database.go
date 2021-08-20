@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 
-	"github.com/widimustopo/temporal-namespaces-module/libs"
+	"github.com/widimustopo/temporal-namespaces-workflow/libs"
 
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
