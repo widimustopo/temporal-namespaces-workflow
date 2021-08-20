@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/widimustopo/temporal-namespaces-workflow/libs"
 	"github.com/widimustopo/temporal-namespaces-workflow/models"
@@ -12,7 +13,14 @@ import (
 )
 
 func (a Activities) Order(ctx context.Context, req *models.TemporalOrderRequest) (interface{}, error) {
-	fmt.Println("ini datanya kan : ", req)
+	fmt.Println("Order Request Data : ", req)
+
+	/*
+		Raw Json : {
+			"qty": 1
+		}
+	*/
+
 	member, _, _, err := a.FindByID(req.Data.MemberID, "member")
 	if err != nil {
 		logrus.Error(err.Error())
@@ -25,6 +33,8 @@ func (a Activities) Order(ctx context.Context, req *models.TemporalOrderRequest)
 		return nil, err
 	}
 
+	req.Data.PaymentID = uuid.New()
+
 	req.Data.MemberName = member.MemberName
 	req.Data.ProductName = product.ProductName
 
@@ -34,13 +44,13 @@ func (a Activities) Order(ctx context.Context, req *models.TemporalOrderRequest)
 
 	req.Data.FullPrice = fullPrice
 
-	errInsert := a.DB.Create(req.Data).Error
+	errInsert := a.DB.Create(&req.Data).Error
 	if errInsert != nil {
 		logrus.Error(errInsert.Error())
 		return nil, err
 	}
 
-	_, result, _, err := a.FindByID(req.Data.MemberID, "payment")
+	_, result, _, err := a.FindByID(req.Data.PaymentID, "payment")
 	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err
@@ -57,7 +67,7 @@ func (a Activities) Order(ctx context.Context, req *models.TemporalOrderRequest)
 
 func executeExpiredWorkflow(ctx context.Context, temporalClient client.Client, req *models.TemporalOrderRequest) (err error) {
 	workflowOptions := client.StartWorkflowOptions{
-		ID:                 req.Data.PaymentID.String(),
+		ID:                 req.Data.PaymentID,
 		TaskQueue:          libs.ExpiredWorkflow,
 		WorkflowRunTimeout: time.Minute * 10,
 	}

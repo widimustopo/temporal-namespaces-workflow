@@ -17,28 +17,30 @@ const (
 	DeleteSuccess                 = "Delete Success"
 
 	//Temporal Workflow
-	RegisterWorkflow    = "RegisterWorkflow"
-	PaymentWorkflow     = "PaymentWorkflow"
-	OrderWorkflow       = "OrderWorkflow"
-	ExpiredWorkflow     = "ExpiredWorkflow"
-	PaymentFailWorkflow = "PaymentFailWorkflow"
+	RegisterWorkflow       = "RegisterWorkflow"
+	PaymentWorkflow        = "PaymentWorkflow"
+	OrderWorkflow          = "OrderWorkflow"
+	ExpiredWorkflow        = "ExpiredWorkflow"
+	PaymentFailWorkflow    = "PaymentFailWorkflow"
+	CounterProductWorkflow = "CounterProductWorkflow"
+	AddProductWorkflow     = "AddProductWorkflow"
 
 	//Register Member
 	ActivityRegisterMember = "Register"
-	RegisterMemberQueue    = "REG-MEMBER-QUEUE"
 
 	//Payment
 	ActivityPayment = "Payment"
 	ActivityOrder   = "Order"
-	PaymentQueue    = "ORDER-QUEUE"
+	Counter         = "Counter"
 
 	//Expired
 	ActivityExpired = "Expired"
-	ExpiredQueue    = "EXPIRED-QUEUE"
 
 	//PaymentFail
 	ActivityPaymentFail = "PaymentFail"
-	PaymentFailQueue    = "PAYMENT-FAIL-QUEUE"
+
+	//Product
+	ActivityAddProduct = "AddProduct"
 
 	MaxConcurrentSquareActivitySize = 10
 )

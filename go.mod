@@ -4,8 +4,8 @@ go 1.15
 
 require (
 	github.com/go-resty/resty/v2 v2.6.0
-	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/joho/godotenv v1.3.0
+	github.com/pborman/uuid v1.2.1
 	github.com/sirupsen/logrus v1.8.1
 	go.temporal.io/sdk v1.9.0
 	gorm.io/driver/mysql v1.1.2

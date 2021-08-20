@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gofrs/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/widimustopo/temporal-namespaces-workflow/models"
 )
 
 func (a Activities) Payment(ctx context.Context, req *models.TemporalPaymentRequest) (interface{}, error) {
-	fmt.Println("ini data payment : ", req)
+	fmt.Println("data payment : ", req)
 
 	errSignal := a.SignalWorkflow(context.Background(), req.Data.PaymentID, "", "paymentsignal_"+req.Data.PaymentID, true)
 	if errSignal != nil {
@@ -20,13 +19,13 @@ func (a Activities) Payment(ctx context.Context, req *models.TemporalPaymentRequ
 
 	var payments *models.Payment
 
-	newUuid, _ := uuid.FromString(req.Data.PaymentID)
+	//newUuid, _ := uuid.FromString(req.Data.PaymentID)
 	payments = &models.Payment{
-		PaymentID:     newUuid,
+		PaymentID:     req.Data.PaymentID,
 		StatusPayment: req.Data.StatusPayment,
 	}
 
-	err := a.DB.Model(&payments).Where("payment_id = ?", payments.PaymentID.String()).Update("status_payment", payments.StatusPayment).Error
+	err := a.DB.Model(&payments).Where("payment_id = ?", payments.PaymentID).Update("status_payment", payments.StatusPayment).Error
 	if err != nil {
 		logrus.Error("error ", err)
 		return nil, err
@@ -42,17 +41,17 @@ func (a Activities) Payment(ctx context.Context, req *models.TemporalPaymentRequ
 }
 
 func (a Activities) PaymentFail(ctx context.Context, req *models.TemporalPaymentRequest) (interface{}, error) {
-	fmt.Println("ini data payment fail : ", req)
+	fmt.Println("data request payment fail : ", req)
 
 	var payments *models.Payment
 
-	newUuid, _ := uuid.FromString(req.Data.PaymentID)
+	//newUuid, _ := uuid.FromString(req.Data.PaymentID)
 	payments = &models.Payment{
-		PaymentID:     newUuid,
+		PaymentID:     req.Data.PaymentID,
 		StatusPayment: req.Data.StatusPayment,
 	}
 
-	err := a.DB.Model(&payments).Where("payment_id = ?", payments.PaymentID.String()).Update("status_payment", payments.StatusPayment).Error
+	err := a.DB.Model(&payments).Where("payment_id = ?", payments.PaymentID).Update("status_payment", payments.StatusPayment).Error
 	if err != nil {
 		logrus.Error("error ", err)
 		return nil, err

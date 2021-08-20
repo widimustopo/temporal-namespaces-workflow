@@ -36,12 +36,14 @@ func main() {
 
 	registerClient := initRegisterTemporalClient(loadConfig)
 	paymentClient := initPaymentTemporalClient(loadConfig)
+	productClient := initProductTemporalClient(loadConfig)
 
 	workerRegister := initRegisterWorker(registerClient, db)
 	workerOrder := initOrderWorker(paymentClient, db)
 	workerExpired := initExpiredWorker(paymentClient, db)
 	workerPayment := initPaymentWorker(paymentClient, db)
 	workerPaymentFail := initPaymentFailWorker(paymentClient, db)
+	workerProduct := initProductWorker(productClient, db)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
@@ -53,6 +55,7 @@ func main() {
 	workerPayment.Stop()
 	workerPaymentFail.Stop()
 	workerExpired.Stop()
+	workerProduct.Stop()
 
 }
 func initRegisterTemporalClient(cfg *libs.Config) client.Client {
@@ -72,6 +75,19 @@ func initPaymentTemporalClient(cfg *libs.Config) client.Client {
 	c, err := client.NewClient(client.Options{
 		HostPort:  client.DefaultHostPort,
 		Namespace: cfg.PaymentNamespaces,
+	})
+
+	if err != nil {
+		logrus.Fatalln("Unable to create client", err)
+	}
+
+	return c
+}
+
+func initProductTemporalClient(cfg *libs.Config) client.Client {
+	c, err := client.NewClient(client.Options{
+		HostPort:  client.DefaultHostPort,
+		Namespace: cfg.ProductNamespaces,
 	})
 
 	if err != nil {
@@ -110,9 +126,10 @@ func initOrderWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
 	worker := worker.New(temporalClient, libs.OrderWorkflow, wo)
 
 	worker.RegisterWorkflow(workflows.OrderWorkflow)
-
+	worker.RegisterWorkflow(workflows.CounterProductWorkflow)
 	newHandler := activities.HandlerActivities(db, temporalClient)
 	worker.RegisterActivity(newHandler.Order)
+	worker.RegisterActivity(newHandler.Counter)
 
 	err := worker.Start()
 	if err != nil {
@@ -176,6 +193,27 @@ func initPaymentFailWorker(temporalClient client.Client, db *gorm.DB) worker.Wor
 
 	newHandler := activities.HandlerActivities(db, temporalClient)
 	worker.RegisterActivity(newHandler.PaymentFail)
+
+	err := worker.Start()
+	if err != nil {
+		logrus.Error(err.Error())
+		return nil
+	}
+
+	return worker
+}
+
+func initProductWorker(temporalClient client.Client, db *gorm.DB) worker.Worker {
+	wo := worker.Options{
+		MaxConcurrentActivityExecutionSize: libs.MaxConcurrentSquareActivitySize,
+	}
+
+	worker := worker.New(temporalClient, libs.AddProductWorkflow, wo)
+
+	worker.RegisterWorkflow(workflows.AddProductWorkflow)
+
+	newHandler := activities.HandlerActivities(db, temporalClient)
+	worker.RegisterActivity(newHandler.AddProduct)
 
 	err := worker.Start()
 	if err != nil {

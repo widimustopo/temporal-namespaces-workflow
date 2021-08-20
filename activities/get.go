@@ -5,7 +5,7 @@ import (
 	"github.com/widimustopo/temporal-namespaces-workflow/models"
 )
 
-func (a Activities) FindByID(id string, types string) (*models.Member, *models.Payment, *models.Product, error) {
+func (a Activities) FindByID(id interface{}, types string) (*models.Member, *models.Payment, *models.Product, error) {
 
 	switch types {
 	case "member":
@@ -28,7 +28,7 @@ func (a Activities) FindByID(id string, types string) (*models.Member, *models.P
 		return nil, &payment, nil, nil
 	case "product":
 		var product models.Product
-		err := a.DB.First(&product, "product_id = ?", id).Error
+		err := a.DB.First(&product, "product_id = ? or product_name = ?", id, id).Error
 		if err != nil {
 			logrus.Fatal("err ", err)
 			return nil, nil, nil, err
