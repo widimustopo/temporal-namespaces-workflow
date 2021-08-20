@@ -16,7 +16,7 @@ run API temporal-echo-namespaces
 go run main.go
 ```
 
-run it's workflow, temporal-namespaces-workflow
+run it's workflow, temporal-namespaces-workflow 
 
 ```
 go run main.go
